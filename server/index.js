@@ -11,6 +11,14 @@ app.use(express.json());
 
 const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+
+// Health check용 루트 엔드포인트
+app.get('/', (req, res) => {
+  res.send('OK');
+});
+
+
+
 app.all('/api/stream', async (req, res) => {
   // GET/POST 모두 처리
   const message = req.method === 'GET'
