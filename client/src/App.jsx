@@ -27,7 +27,13 @@ export default function App() {
     setCharCount(0);
     setIsLoading(true);
 
-    const url = `http://localhost:4000/api/stream?message=${encodeURIComponent(prompt)}`;
+    // const url = `http://localhost:4000/api/stream?message=${encodeURIComponent(prompt)}`;
+
+    // 1) VITE_API_URL 환경변수(예: https://ai-builder.onrender.com)
+// 2) 로컬 개발 시엔 빈 문자열을 써서 'http://localhost:5173/api/…' 호출
+const API_BASE = import.meta.env.VITE_API_URL || '';  
+const url = `${API_BASE}/api/stream?message=${encodeURIComponent(prompt)}`;
+
     evtRef.current = new EventSourcePolyfill(url);
 
     evtRef.current.onmessage = e => {
