@@ -1,0 +1,14 @@
+{
+  "name": "ai-builder",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run start --workspace server\" \"npm run dev --workspace client\""
+  }
+}
