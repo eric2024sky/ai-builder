@@ -10,14 +10,21 @@ export default function App() {
   const [charCount, setCharCount] = useState(0);
   const evtRef = useRef(null);
 
+  // ─── 저장된 페이지 ID (미리보기 링크) ───────────────────
+  const [previewId, setPreviewId] = useState('');
+
   // ─── 레이아웃 리사이즈 상태 ────────────────────────────
-  const [leftWidth, setLeftWidth] = useState(35); // % 단위
+  const [leftWidth, setLeftWidth] = useState(35);
   const containerRef = useRef(null);
   const isResizing    = useRef(false);
 
   // ─── 테마 토글 상태 ─────────────────────────────────────
-  const [theme, setTheme] = useState('dark'); // 'dark' | 'light'
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  const [theme, setTheme] = useState('dark');
+  const toggleTheme = () =>
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+
+  // ─── API_BASE (로컬 / 배포 분기) ───────────────────────
+  const API_BASE = import.meta.env.VITE_API_URL || '';
 
   // ─── AI 페이지 생성 핸들러 ─────────────────────────────
   const generatePage = () => {
@@ -25,26 +32,33 @@ export default function App() {
     evtRef.current?.close();
     setHtmlCode('');
     setCharCount(0);
+    setPreviewId('');      // 이전 링크 초기화
     setIsLoading(true);
 
-    // const url = `http://localhost:4000/api/stream?message=${encodeURIComponent(prompt)}`;
-
-    // 1) VITE_API_URL 환경변수(예: https://ai-builder.onrender.com)
-// 2) 로컬 개발 시엔 빈 문자열을 써서 'http://localhost:5173/api/…' 호출
-const API_BASE = import.meta.env.VITE_API_URL || '';  
-const url = `${API_BASE}/api/stream?message=${encodeURIComponent(prompt)}`;
-
+    const url = `${API_BASE}/api/stream?message=${encodeURIComponent(prompt)}`;
     evtRef.current = new EventSourcePolyfill(url);
 
+    let fullHtml = '';
     evtRef.current.onmessage = e => {
       if (e.data === '[DONE]') {
         evtRef.current.close();
         setIsLoading(false);
+        // ➊ 스트림이 끝나면 저장 호출
+        fetch(`${API_BASE}/api/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, html: fullHtml })
+        })
+        .then(res => res.json())
+        .then(data => setPreviewId(data.id))
+        .catch(console.error);
       } else {
-        setHtmlCode(prev => prev + e.data);
+        fullHtml += e.data;
+        setHtmlCode(fullHtml);
         setCharCount(prev => prev + e.data.length);
       }
     };
+
     evtRef.current.onerror = () => {
       evtRef.current.close();
       setIsLoading(false);
@@ -54,10 +68,10 @@ const url = `${API_BASE}/api/stream?message=${encodeURIComponent(prompt)}`;
   // ─── 리사이저 이벤트 바인딩 ────────────────────────────
   useEffect(() => {
     const onMouseMove = e => {
-      if (!isResizing.current) return;  // 클릭 상태가 아니면 무시
+      if (!isResizing.current) return;
       const { left, width } = containerRef.current.getBoundingClientRect();
       let pct = ((e.clientX - left) / width) * 100;
-      pct = Math.max(20, Math.min(80, pct)); // 20%~80% 제한
+      pct = Math.max(20, Math.min(80, pct));
       setLeftWidth(pct);
     };
     const onMouseUp = () => {
@@ -118,12 +132,26 @@ const url = `${API_BASE}/api/stream?message=${encodeURIComponent(prompt)}`;
               ? '✅ 생성 완료!'
               : ''}
         </div>
+
+        {/* ➋ 미리보기 링크 */}
+        {previewId && (
+          <div className="preview-link">
+            👉&nbsp;
+            <a
+              href={`${API_BASE}/preview/${previewId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              생성된 페이지 전체보기
+            </a>
+          </div>
+        )}
       </div>
 
-      {/* 리사이저 바: 클릭→드래그 시에만 startResize 호출 */}
+      {/* 리사이저 바 */}
       <div className="resizer-bar" onMouseDown={startResize} />
 
-      {/* 오른쪽 미리보기 패널 */}
+      {/* 오른쪽 프리뷰 패널 */}
       <div className="panel preview-panel" style={{ width: `${100 - leftWidth}%` }}>
         {isLoading && (
           <div className="spinner-overlay">
