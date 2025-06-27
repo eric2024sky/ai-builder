@@ -1,14 +1,13 @@
-# .render.yaml
 services:
   - type: web
-    name: ai-builder-server
+    name: ai-builder-api
     env: node
     plan: free
-    region: oregon            # 본인이 쓰고 있는 리전
-    rootDir: server           # <-- server 폴더를 루트로 잡습니다.
-    buildCommand: npm install # server/package.json 대로 설치
-    startCommand: npm start   # server/index.js 실행
-    envVars:                  # Render 대시보드에서 설정했던 환경변수
+    region: oregon
+    rootDir: server       # ↖ 반드시 server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
       - key: OPENAI_API_KEY
         fromEnvironment: OPENAI_API_KEY
       - key: MONGODB_URI
